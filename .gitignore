@@ -5,11 +5,13 @@ __pycache__/
 *.egg-info/
 build/
 dist/
-# runtime data, state and secrets never belong in git
-data/
-state/
-runs/
-secrets/
+# runtime data, state and secrets never belong in git. Anchored to the repo
+# root (where the default config writes them) so source packages such as
+# apexmind/data/ are not ignored.
+/data/
+/state/
+/runs/
+/secrets/
 *.key
 *.sqlite
 *.sqlite-wal
