@@ -29,6 +29,13 @@ checks or records each one, and the parsers fail safe where they can.
 * **Passive fills** are conservative: back of the queue, no queue improvement
   from cancels, no partial fills. Real passive performance may be better.
   This model can understate the edge but should not overstate it.
+* **Outcome distribution granularity.** The expected net return is
+  calibrated per decision (isotonic regression of realized on predicted). The
+  probability of a favorable outcome, return quantiles, Expected Shortfall,
+  adverse excursion and significant-slippage probability are estimated over the
+  calibration trades selected by each side's policy, not predicted per row.
+  Conditional per-row distribution models (for example quantile GBMs) would
+  sharpen sizing, but each would add another model that must earn its place.
 * **Own market impact** on later book states is not simulated. That's
   negligible at small notional but matters at size.
 * **Latency prior.** Until at least 30 live samples exist, labels use a

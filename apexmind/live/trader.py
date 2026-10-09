@@ -146,6 +146,7 @@ class Trader:
         self.grid_ns = cfg.features.grid_ms * 1_000_000
         self.next_tick: int | None = None
         self.started_ns = clock.now_ns()
+        self.clock_unc_ms = 0.0 if mode == "paper" else self.refresh_clock_status()
         self._recover()
 
     def _recover(self) -> None:
@@ -220,11 +221,14 @@ class Trader:
         vals = [(r["t_fill_print"] - r["t_decision"]) / 1e6 for r in recs if r["t_fill_print"] and r["t_decision"]]
         return float(np.median(vals)) if len(vals) >= 10 else self.bundle.calib_latency_ms
 
-    def clock_uncertainty_ms(self) -> float:
+    def refresh_clock_status(self) -> float:
+        """Query the OS time-sync daemon (a subprocess): call from the
+        housekeeping loop, not per tick. Unknown sync counts as uncertain."""
         st = system_clock_status()
         unc = abs(self.clock.wall_drift_ns()) / 1e6
         if "offset_ms" in st:
             unc += abs(float(st["offset_ms"])) + float(st.get("root_dispersion_ms", 0.0))
+        self.clock_unc_ms = unc
         return unc
 
     def risk_multiplier(self) -> float:
@@ -249,7 +253,7 @@ class Trader:
         can_enter = self.entries_enabled and not self.halted_reason and mstate == "ok"
         open_pos = self.om.open_positions()
         busy = self.om.busy_symbols()
-        clock_unc = self.clock_uncertainty_ms() if self.mode == "live" else 0.0
+        clock_unc = self.clock_unc_ms if self.mode == "live" else 0.0
         self.decider.observe({s: v for s, (v, _) in rows.items()})
         for s, (_, info) in rows.items():
             if not info["valid"]:
@@ -402,6 +406,7 @@ async def run_trader(cfg: Config, mode: str) -> None:
     async def housekeeping():
         while not stop.is_set():
             if mode == "live":
+                tr.refresh_clock_status()
                 try:
                     await _reconcile_live(tr, boot.lrest, gw)
                     await gw.schedule_cancel_all(int(time.time() * 1000) + cfg.live.deadman_seconds * 1000)
