@@ -13,7 +13,7 @@ out-of-sample validation against simple baselines after realistic costs.
 | Real market data collected | **None yet.** The development container could not reach any exchange (network policy). |
 | Trading history | **None.** No live or paper trades on real data exist. |
 | Evidence of a market edge | **None.** No claim of profitability or competitive advantage is made. |
-| Code and methodology | Implemented and tested (61 tests, plus a slow end-to-end control experiment). |
+| Code and methodology | Implemented and tested (64 fast tests, plus a slow end-to-end control experiment). |
 | Methodology validation | Synthetic positive/negative controls: the pipeline finds a planted edge and rejects a world with none. See [docs/RESULTS.md](docs/RESULTS.md). |
 
 The system is built to *earn* deployment: the trader refuses live mode until a

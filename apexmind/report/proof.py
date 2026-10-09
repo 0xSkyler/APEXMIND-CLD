@@ -150,7 +150,10 @@ def render(results: dict, reproduce_cmd: str = "") -> str:
         pbo = c.get("pbo", {})
         L.append(f"- Probability of backtest overfitting (CSCV): {_f(pbo.get('pbo'), 3)} over "
                  f"{pbo.get('n_combinations')} splits")
-        L += ["", "| Model | Deflated Sharpe P(SR>SR0) | Per-period SR | vs baselines: mean diff (CI) p |", "|---|---|---|---|"]
+        L += ["", "Pairwise differences are per evaluation period, in bps of unit notional summed over the period's "
+              "trades (positive = row model better); p is one-sided.", "",
+              "| Model | Deflated Sharpe P(SR>SR0) | Per-period SR | vs baselines: mean diff/period (95% CI) p |",
+              "|---|---|---|---|"]
         for m, d in c.get("deflated_sharpe", {}).items():
             pw = c["pairwise_vs_baselines"].get(m, {})
             diffs = "; ".join(f"{b}: {_f(v['mean'] * 1e4)}bps [{_f(v['lo'] * 1e4)}, {_f(v['hi'] * 1e4)}] "
