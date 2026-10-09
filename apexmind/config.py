@@ -157,7 +157,7 @@ class ExecutionConfig:
     allow_passive: bool = True
     passive_max_wait_fraction: float = 0.5  # of signal horizon
     max_slippage_bps: float = 15.0
-    order_expiry_s: int = 300
+    order_expiry_s: int = 600  # exchange-side backstop; Lighter requires >= 5 min
 
 
 @dataclass
