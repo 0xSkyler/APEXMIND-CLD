@@ -1,0 +1,29 @@
+[Unit]
+Description=APEX MIND trader (paper unless APEXMIND_TRADE_ARGS selects live)
+After=network-online.target time-sync.target apexmind-collector.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=apexmind
+Group=apexmind
+WorkingDirectory=/var/lib/apexmind
+# Paper by default. For live, after a passing integration test:
+#   systemctl edit apexmind-trader  ->  Environment=APEXMIND_TRADE_ARGS=--mode live --i-understand-live-risk
+Environment=APEXMIND_TRADE_ARGS=--mode paper
+ExecStart=/bin/sh -c 'exec /opt/apexmind/venv/bin/apexmind --config /etc/apexmind/config.yaml trade $APEXMIND_TRADE_ARGS'
+# The API key is delivered as a systemd credential (never in the config or env file).
+LoadCredential=lighter_api_key:/etc/apexmind/lighter_api_key
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+Nice=-5
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/apexmind
+
+[Install]
+WantedBy=multi-user.target

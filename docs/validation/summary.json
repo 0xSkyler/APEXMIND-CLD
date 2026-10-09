@@ -1,0 +1,18 @@
+{
+ "positive_control": {
+  "planted_lag_s": 3.0,
+  "selected": {
+   "model": "ridge",
+   "mode": "aggressive"
+  },
+  "verdict": "credible OOS edge; beats every baseline",
+  "beats_baselines": true
+ },
+ "negative_control": {
+  "planted_lag_s": 0.0,
+  "selected": null,
+  "verdict": "NO MODEL demonstrated a credible out-of-sample edge after costs",
+  "beats_baselines": null
+ },
+ "methodology_ok": true
+}
