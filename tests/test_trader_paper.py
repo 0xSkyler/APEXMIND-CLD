@@ -105,8 +105,6 @@ def test_paper_trading_end_to_end_and_restart(setup):
 
 def test_kill_file_flattens_and_blocks_entries(setup):
     cfg, d, s0, bid, reg, meta = setup
-    cfg2 = Config()
-    cfg2.__dict__.update(cfg.__dict__)
     clock = ManualClock(s0)
     tr = make_trader(cfg, bid, reg, meta, clock)
     (d / "KILL").write_text("stop")

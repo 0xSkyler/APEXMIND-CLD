@@ -1,6 +1,5 @@
 import asyncio
 import json
-import math
 
 import pytest
 import websockets

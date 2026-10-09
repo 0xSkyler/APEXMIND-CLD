@@ -83,7 +83,7 @@ def render(results: dict, reproduce_cmd: str = "") -> str:
           f"p90 {lat.get('p90_ms')} ms, p99 {lat.get('p99_ms')} ms. Applied as decision-to-fill delay on the local "
           "timeline; independent draws for entry and exit.",
           "- Aggressive fills: walk the recorded Lighter book at the simulated fill instant for the label notional "
-          f"(${ds.get('extra', {}).get('label_notional', 'see config')}); positions are never sized above it.",
+          f"(${_f(meta.get('label_notional_usd'), 0)}); positions are never sized above it.",
           "- Passive fills: post-only at the touch at entry time; filled only when the tape trades through the price "
           "or exhausts the displayed queue ahead plus our size; cancels never improve queue position; no partial fills.",
           f"- Fees (taker, maker) per market: {json.dumps(ds.get('fees'))}",
@@ -97,10 +97,7 @@ def render(results: dict, reproduce_cmd: str = "") -> str:
                  f"{f['cal_start_utc'][:16]} - {f['cal_end_utc'][:16]} | {f['test_start_utc'][:16]} - {f['test_end_utc'][:16]} |")
     L += [""]
 
-    eq0 = None
-    for name, r in results["models"].items():
-        for mode, mr in r["modes"].items():
-            eq0 = eq0 or next(iter(mr["equity_scenarios"]))
+    eq0 = meta["primary_equity"]
     L += [f"## Model comparison (primary equity ${eq0})", "",
           "| Model | Exec | Signals | Executed | Rejected | Net bps (95% CI) | Gross bps | Fees bps | Funding bps | "
           "Slip bps | PF | Expectancy $ | Max DD | ES95 bps | Return |",
@@ -128,7 +125,7 @@ def render(results: dict, reproduce_cmd: str = "") -> str:
             for e, sc in mr["equity_scenarios"].items():
                 if e == eq0:
                     continue
-                reasons = ", ".join(f"{k}: {v}" for k, v in list(sc["opportunities"]["reasons"].items())[:3])
+                reasons = ", ".join(f"{k}: {v}" for k, v in sc["opportunities"]["reasons"][:3])
                 L.append(f"| {name} | {mode} | {e} | {sc['opportunities']['executed']} | "
                          f"{_f(sc['equity']['final_equity'], 4)} | {reasons or '-'} |")
     L += [""]

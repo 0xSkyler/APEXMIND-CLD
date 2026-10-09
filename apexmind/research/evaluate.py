@@ -100,5 +100,6 @@ def regime_breakdown(trades: pd.DataFrame, regime_cols: list[str], block_ns: int
 
 
 def rejection_summary(rej: Counter, n_signals: int, n_trades: int) -> dict:
+    # list of [reason, count] (most frequent first) so JSON key sorting can't reorder it
     return {"signals": n_signals, "executed": n_trades, "rejected": int(sum(rej.values())),
-            "reasons": dict(sorted(rej.items(), key=lambda kv: -kv[1]))}
+            "reasons": [[k, int(v)] for k, v in sorted(rej.items(), key=lambda kv: -kv[1])]}

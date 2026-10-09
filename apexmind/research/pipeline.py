@@ -151,6 +151,7 @@ def run_research(cfg: Config, df: pd.DataFrame, meta: DatasetMeta, run_dir: str 
                     "period": summarize_period(df)},
         "data_quality": meta.quality, "markets": meta.markets, "gap_s": gap / 1e9, "elapsed_s": round(time.time() - t_start, 1),
         "trials": len(models) * 2 * len(spec.horizons) * len(QUANTILES),
+        "primary_equity": f"{equities[0]:g}", "label_notional_usd": cfg.labels.notional_usd,
     }
     results["meta"]["results_hash"] = stable_hash({k: results[k] for k in ("models", "comparisons", "champion")})
     atomic_write_json(run_dir / "results.json", results)

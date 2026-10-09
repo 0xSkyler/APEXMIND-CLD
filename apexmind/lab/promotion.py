@@ -45,8 +45,7 @@ def promotion_gate(results: dict, cfg: Config, purpose: str = "live", reproduced
     if sel is None:
         return GateResult(False, purpose, checks)
     model, mode = sel["model"], sel["mode"]
-    scen = results["models"][model]["modes"][mode]["equity_scenarios"]
-    primary = scen[next(iter(scen))]
+    primary = results["models"][model]["modes"][mode]["equity_scenarios"][results["meta"]["primary_equity"]]
     t = primary["trades"]
     n_folds = len(results["folds"])
     check("oos_periods", n_folds >= lab.promotion_min_oos_periods, f"{n_folds} OOS periods (min {lab.promotion_min_oos_periods})")

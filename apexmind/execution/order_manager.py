@@ -13,7 +13,6 @@
 from __future__ import annotations
 
 import logging
-import math
 import uuid
 from collections.abc import Callable
 
@@ -62,7 +61,6 @@ class OrderManager:
         if top is None:
             return None
         pid = uuid.uuid4().hex[:16]
-        now = self.clock.now_ns()
         if d.exec_mode == "passive":
             price, kind = (top[0] if d.side == BUY else top[2]), "post_only"
         else:
@@ -252,7 +250,3 @@ class OrderManager:
 def exec_record_meta(rec: dict) -> dict:
     """Shape of the ``meta/exec`` records the latency model consumes."""
     return {k: rec.get(k) for k in ("kind", "t_decision", "t_sent", "t_ack", "t_fill_print", "symbol", "mode")}
-
-
-def _nan(x) -> float:
-    return math.nan if x is None else x

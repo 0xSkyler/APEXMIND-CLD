@@ -10,7 +10,6 @@ transfers. ``tests/test_no_withdrawals.py`` enforces this statically.
 
 from __future__ import annotations
 
-import asyncio
 import heapq
 import math
 import time

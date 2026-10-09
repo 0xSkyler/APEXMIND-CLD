@@ -34,4 +34,5 @@ include = ["apexmind*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+addopts = "-m 'not slow'"
 markers = ["slow: end-to-end methodology validation (minutes)"]

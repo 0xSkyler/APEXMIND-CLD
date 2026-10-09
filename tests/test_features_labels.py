@@ -1,10 +1,9 @@
-import math
 
 import numpy as np
 import pytest
 
 from apexmind.config import Config
-from apexmind.core.events import BBO, BUY, LIGHTER, SELL, BookDelta, BookSnapshot, MarketStats, Trade
+from apexmind.core.events import BBO, LIGHTER, SELL, BookDelta, BookSnapshot, MarketStats, Trade
 from apexmind.data.dataset import assemble_frame, build_dataset, run_pipeline
 from apexmind.data.synthetic import SymbolSpec, SyntheticSpec, generate
 from apexmind.latency.model import LatencyModel
@@ -38,9 +37,12 @@ def test_no_lookahead_features(synth):
     a = full[full.ts_ns.isin(cut.ts_ns)].reset_index(drop=True)
     assert len(a) == len(cut) > 1000
     np.testing.assert_array_equal(a[names].to_numpy(), cut[names].to_numpy())
-    # labels near the cut are censored instead of peeking past the data end
-    last = cut[cut.ts_ns > cut.ts_ns.max() - 2 * S]
-    assert last.ret_long_5.isna().all()
+    # labels: rows whose simulated orders finished before the cut get identical
+    # executable outcomes; rows near the cut are completed from the label tail
+    early = cut.ts_ns < cut.ts_ns.max() - 20 * S
+    lab = ["ret_long_5", "ret_short_5", "entry_px_long", "lat_entry_ms"]
+    np.testing.assert_array_equal(a.loc[early.to_numpy(), lab].to_numpy(), cut.loc[early, lab].to_numpy())
+    assert cut[cut.ts_ns > cut.ts_ns.max() - 2 * S].ret_long_5.notna().all()
 
 
 def test_label_frame_sanity(synth):
@@ -137,3 +139,28 @@ def test_funding_applied_when_crossed():
     after = df[df.ts_ns == t0 + 241 * S].iloc[0]
     assert crossed.fund_long_1 == pytest.approx(-0.001) and crossed.fund_short_1 == pytest.approx(0.001)
     assert after.fund_long_1 == 0.0
+
+
+def test_day_chunks_are_seamless_and_cached(tmp_path):
+    """A window crossing UTC midnight is built as two cached chunks with no
+    missing ticks and labels completed across the boundary."""
+    midnight = 1_767_312_000 * S  # 2026-01-02T00:00:00Z
+    spec = SyntheticSpec(hours=0.5, seed=8, start_ns=midnight - 15 * 60 * S, symbols=[SymbolSpec()])
+    generate(spec, str(tmp_path / "raw"))
+    cfg = small_cfg()
+    start, end = midnight - 10 * 60 * S, midnight + 10 * 60 * S
+    import time as _t
+
+    t0 = _t.time()
+    df, meta = build_dataset(cfg, str(tmp_path / "raw"), start, end, cache_dir=str(tmp_path / "cache"))
+    first = _t.time() - t0
+    assert len(meta.extra["chunk_cache_keys"]) == 2
+    ts = np.sort(df.ts_ns.unique())
+    assert ts[0] == start and ts[-1] == end - cfg.features.grid_ms * 10**6
+    assert np.all(np.diff(ts) == cfg.features.grid_ms * 10**6)  # no gap at midnight
+    before = df[(df.ts_ns < midnight) & (df.ts_ns > midnight - 2 * S)]
+    assert before.valid.all() and before.ret_long_5.notna().all()
+    t0 = _t.time()
+    df2, _ = build_dataset(cfg, str(tmp_path / "raw"), start, end, cache_dir=str(tmp_path / "cache"))
+    assert _t.time() - t0 < first / 3
+    np.testing.assert_array_equal(df2[meta.feature_names].to_numpy(), df[meta.feature_names].to_numpy())
