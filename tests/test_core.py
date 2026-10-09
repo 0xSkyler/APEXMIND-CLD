@@ -148,3 +148,18 @@ def test_secret_file_permissions(tmp_path):
     os.chmod(key, stat.S_IRUSR | stat.S_IWUSR)
     assert load_lighter_api_key(cfg, env={}) == "abc"
     assert load_lighter_api_key(cfg, env={"APEXMIND_LIGHTER_API_KEY": "zz"}) == "zz"
+
+
+def test_systemd_credential_allows_group_read(tmp_path):
+    # LoadCredential delivers 0440 files in a unit-private directory
+    cfg = load_config(None, env={}).live
+    cfg.secrets_file = str(tmp_path / "absent")
+    cred = tmp_path / "creds"
+    cred.mkdir()
+    key = cred / "lighter_api_key"
+    key.write_text("k1\n")
+    os.chmod(key, 0o440)
+    assert load_lighter_api_key(cfg, env={"CREDENTIALS_DIRECTORY": str(cred)}) == "k1"
+    os.chmod(key, 0o444)
+    with pytest.raises(SecretError):
+        load_lighter_api_key(cfg, env={"CREDENTIALS_DIRECTORY": str(cred)})
