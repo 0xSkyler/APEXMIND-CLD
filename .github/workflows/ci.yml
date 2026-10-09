@@ -41,3 +41,45 @@ jobs:
       - name: Test
         # pyproject's addopts exclude the slow synthetic-control experiment (-m slow)
         run: python -m pytest -q
+
+  methodology:
+    # Slow end-to-end synthetic positive/negative controls (~20 min on 4
+    # uncontended cores, peak ~1.7 GB RAM / ~220 MB disk). Runs on pushes to
+    # main and manual dispatch only, after the fast suite.
+    name: methodology controls (slow)
+    if: github.event_name != 'pull_request'
+    needs: pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 90  # 45 min observed under 2x CPU contention
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Positive and negative synthetic controls
+        # -m slow overrides pyproject's addopts (-m 'not slow')
+        run: python -m pytest -q -m slow --basetemp="$RUNNER_TEMP/pytest"
+
+      - name: Upload validation reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: methodology-reports
+          # pytest also leaves a "<name>current" symlink to the numbered tmp dir;
+          # upload-artifact follows symlinks, so exclude it to avoid duplicates
+          path: |
+            ${{ runner.temp }}/pytest/**/summary.json
+            ${{ runner.temp }}/pytest/**/report.md
+            ${{ runner.temp }}/pytest/**/results.json
+            !${{ runner.temp }}/pytest/*current/**
+          if-no-files-found: warn
+          retention-days: 30
