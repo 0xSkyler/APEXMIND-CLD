@@ -183,7 +183,9 @@ async def _account_phase(cfg, rep: Report, clock, lrest):
     acct = await lrest.account(cfg.lighter.account_index)
     a = (acct.data.get("accounts") or [acct.data])[0]
     rep.check("account_query", "collateral" in a or "total_asset_value" in a,
-              f"collateral={a.get('collateral')} positions={len(a.get('positions') or [])}")
+              f"collateral={a.get('collateral')} open_positions="
+              f"{sum(1 for p in a.get('positions') or [] if float(p.get('position') or 0.0))}"
+              f" (position entries={len(a.get('positions') or [])})")
     lim = await lrest.account_limits(cfg.lighter.account_index, auth)
     rep.data["account_tier"] = {k: lim.data.get(k) for k in ("user_tier", "user_tier_name", "current_maker_fee_tick",
                                                               "current_taker_fee_tick")}
