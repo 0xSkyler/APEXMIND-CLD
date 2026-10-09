@@ -72,6 +72,8 @@ class Trade:
     # Lighter only: lets us find our own fills on the public tape.
     bid_account: int = -1
     ask_account: int = -1
+    bid_client_id: int = -1
+    ask_client_id: int = -1
 
 
 @dataclass(slots=True)

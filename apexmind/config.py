@@ -129,6 +129,10 @@ class ResearchConfig:
     )
     feature_selection: bool = True
     max_train_rows: int = 400_000
+    min_calibration_trades: int = 50
+    # Equity scenarios simulated for every model; the first is the primary
+    # one used for equity metrics, the rest show small-account feasibility.
+    initial_equities: list[float] = field(default_factory=lambda: [1000.0, 10.0])
     seed: int = 11
 
 
@@ -198,8 +202,12 @@ class LiveConfig:
     integration_report: str = "state/integration_test.json"
     integration_max_age_hours: float = 24.0
     reconcile_interval_s: float = 10.0
-    decision_interval_ms: int = 250
     secrets_file: str = "/etc/apexmind/lighter_api_key"
+    paper_equity: float = 1000.0
+    flatten_on_shutdown: bool = True
+    kill_file: str = "state/KILL"  # create this file to flatten and halt entries
+    deadman_seconds: int = 60  # exchange cancels resting orders if not re-armed
+    record_dir: str = "data/raw"  # where execution-latency records are written
 
 
 @dataclass

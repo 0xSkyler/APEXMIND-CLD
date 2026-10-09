@@ -1,0 +1,25 @@
+[Unit]
+Description=APEX MIND Alpha Laboratory (resource-limited continuous research)
+After=network-online.target apexmind-collector.service
+
+[Service]
+Type=simple
+User=apexmind
+Group=apexmind
+WorkingDirectory=/var/lib/apexmind
+ExecStart=/opt/apexmind/venv/bin/apexmind --config /etc/apexmind/config.yaml lab --purpose live
+Environment=OMP_NUM_THREADS=2
+Restart=always
+RestartSec=60
+Nice=15
+IOSchedulingClass=idle
+CPUQuota=200%
+MemoryMax=6G
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/apexmind
+
+[Install]
+WantedBy=multi-user.target

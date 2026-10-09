@@ -132,7 +132,9 @@ class BinanceParser:
         if u < st.last_u or (st.bridged and u <= st.last_u):
             return []  # already contained in the snapshot
         if not st.bridged:
-            if not (U <= st.last_u <= u):
+            # Must contain or directly continue the snapshot id: an update
+            # starting at lastUpdateId + 1 leaves nothing missing.
+            if not (U <= st.last_u + 1 and u >= st.last_u):
                 return self._gap(st, sym, d, ts_local_ns, f"first update [{U},{u}] does not bridge {st.last_u}")
             st.bridged = True
         elif int(d.get("pu", -1)) != st.last_u:

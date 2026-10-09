@@ -98,6 +98,8 @@ class LighterParser:
                     str(t.get("trade_id", "")),
                     int(t.get("bid_account_id", -1)),
                     int(t.get("ask_account_id", -1)),
+                    int(t.get("bid_client_id", -1) or -1),
+                    int(t.get("ask_client_id", -1) or -1),
                 )
             )
         return out

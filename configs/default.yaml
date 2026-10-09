@@ -1,0 +1,33 @@
+# APEX MIND default configuration. Every key is optional; see apexmind/config.py
+# for all settings and their documented defaults. Secrets never go here.
+lighter:
+  profile: mainnet
+  api_url: https://mainnet.zklighter.elliot.ai
+  ws_url: wss://mainnet.zklighter.elliot.ai/stream
+  chain_id: 304
+  account_index: -1        # set for account/trading features
+  api_key_index: -1
+  fee_source: market       # or "config" with taker_fee/maker_fee for your tier
+reference:
+  venue: binance_usdm
+instruments:
+  initial_bases: [BTC, ETH, SOL]
+  expand_to_all_eligible: false   # enable after mapping + data quality review
+collector:
+  data_dir: data/raw
+features:
+  grid_ms: 250
+labels:
+  horizons_s: [5, 15, 60]
+  notional_usd: 1000
+  latency_source: measured  # falls back to the flagged prior until >= 30 live samples exist
+research:
+  n_folds: 4
+  min_train_hours: 24
+  test_hours: 12
+  block_minutes: 30
+portfolio:
+  kelly_fraction: 0.25
+  max_gross_leverage: 4
+live:
+  mode: paper
