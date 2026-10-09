@@ -154,20 +154,28 @@ class BinanceFeed:
     """bookTicker + diff depth + aggTrade + markPrice, with REST snapshot sync."""
 
     def __init__(self, ws_url: str, venue_symbols: list[str], parser: BinanceParser, rest: BinanceRest,
-                 clock: Clock, on_raw: RawSink, on_events: EventSink, depth_ms: int = 100):
+                 clock: Clock, on_raw: RawSink, on_events: EventSink, depth_ms: int = 100,
+                 market_ws_url: str | None = None):
         self.parser, self.rest, self.clock = parser, rest, clock
         self.on_raw, self.on_events = on_raw, on_events
         self.venue_symbols = [s.upper() for s in venue_symbols]
-        streams = []
+        book, market = [], []
         for s in self.venue_symbols:
             ls = s.lower()
-            streams += [f"{ls}@bookTicker", f"{ls}@depth@{depth_ms}ms", f"{ls}@aggTrade", f"{ls}@markPrice@1s"]
+            book += [f"{ls}@bookTicker", f"{ls}@depth@{depth_ms}ms"]
+            market += [f"{ls}@aggTrade", f"{ls}@markPrice@1s"]
+        # Book streams go to ws_url (/public) and trade/mark streams to
+        # market_ws_url (/market); without a market URL everything shares ws_url.
+        groups = [("public", ws_url, book), ("market", market_ws_url, market)] if market_ws_url \
+            else [("", ws_url, book + market)]
         # Binance allows up to 1024 streams per connection; stay far below.
         self.runners = []
-        for gi in range(0, len(streams), 200):
-            url = f"{ws_url}?streams={'/'.join(streams[gi:gi + 200])}"
-            name = f"binance-{gi // 200}"
-            self.runners.append(WsRunner(name, url, clock, self._noop_open, self._handler(name), self._status(name)))
+        for kind, url_base, streams in groups:
+            for gi in range(0, len(streams), 200):
+                url = f"{url_base}?streams={'/'.join(streams[gi:gi + 200])}"
+                name = f"binance-{kind + '-' if kind else ''}{gi // 200}"
+                self.runners.append(WsRunner(name, url, clock, self._noop_open, self._handler(name),
+                                             self._status(name)))
 
     async def _noop_open(self, ws) -> None:
         return None

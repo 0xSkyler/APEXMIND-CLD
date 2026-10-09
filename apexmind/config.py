@@ -45,7 +45,11 @@ class LighterConfig:
 @dataclass
 class ReferenceConfig:
     venue: str = "binance_usdm"
-    ws_url: str = "wss://fstream.binance.com/stream"
+    # USD-M futures WebSocket is split by traffic type: book streams (bookTicker,
+    # depth) on /public, regular market streams (aggTrade, markPrice) on /market.
+    # The legacy un-split URL no longer delivers /market streams.
+    ws_url: str = "wss://fstream.binance.com/public/stream"
+    market_ws_url: str = "wss://fstream.binance.com/market/stream"
     rest_url: str = "https://fapi.binance.com"
     depth_stream_ms: int = 100  # 100 or 250 or 500 for Binance diff depth
     snapshot_depth: int = 1000

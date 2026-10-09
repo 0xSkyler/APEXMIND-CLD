@@ -19,6 +19,7 @@ checks or records each one, and the parsers fail safe where they can.
 | 7 | Margin fractions are in 1/10 000 units | `markets.py` | Consistent with the SDK (`imf = 10_000 / leverage`) |
 | 8 | Order expiry is a millisecond timestamp; IOC uses 0 | gateway | Verified by the post-only lifecycle test |
 | 9 | Default rate limits (50 REST/min, 4 tx/s) are within your tier | config | Tune after checking Lighter's limits for your account tier |
+| 10 | Binance USD-M serves book streams on `/public` and `aggTrade`/`markPrice` on `/market` (combined `.../stream?streams=`) | `reference.ws_url`, `reference.market_ws_url` | The integration test requires Binance trades and mark-price updates; the collector status shows per-stream `trades` counts |
 
 ## Methodological limitations
 

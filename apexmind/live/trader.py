@@ -395,7 +395,7 @@ async def run_trader(cfg: Config, mode: str) -> None:
     lfeed = LighterFeed(cfg.lighter.ws_url, market_ids, boot.lparser, clock, lambda *a: None, tr.on_events,
                         cfg.lighter.ws_max_subscriptions_per_connection)
     bfeed = BinanceFeed(cfg.reference.ws_url, ref_symbols, boot.bparser, boot.brest, clock, lambda *a: None,
-                        tr.on_events, cfg.reference.depth_stream_ms)
+                        tr.on_events, cfg.reference.depth_stream_ms, market_ws_url=cfg.reference.market_ws_url)
 
     async def ticker():
         while not stop.is_set():

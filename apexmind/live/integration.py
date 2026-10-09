@@ -111,7 +111,8 @@ async def _public_phase(cfg, rep: Report, clock, lrest, brest) -> None:
     rep.data["test_market"] = target.to_dict()
     lp = LighterParser({target.market_id: target.symbol})
     bp = BinanceParser({target.ref_symbol: target.symbol}, multipliers={target.ref_symbol: target.price_multiplier})
-    seen = {"l_snap": 0, "l_upd": 0, "l_gap": 0, "crossed": 0, "b_snap": 0, "b_upd": 0, "stats": None}
+    seen = {"l_snap": 0, "l_upd": 0, "l_gap": 0, "crossed": 0, "b_snap": 0, "b_upd": 0, "b_trade": 0, "b_stats": 0,
+            "stats": None}
     book = L2Book()
 
     def on_events(evs):
@@ -129,13 +130,19 @@ async def _public_phase(cfg, rep: Report, clock, lrest, brest) -> None:
                 seen["b_snap"] += 1
             elif isinstance(e, BookDelta) and e.venue == BINANCE:
                 seen["b_upd"] += 1
+            elif isinstance(e, Trade) and e.venue == BINANCE:
+                seen["b_trade"] += 1
+            elif isinstance(e, MarketStats) and e.venue == BINANCE:
+                seen["b_stats"] += 1
             elif isinstance(e, MarketStats) and e.venue == "lighter":
                 seen["stats"] = e
 
     lf = LighterFeed(cfg.lighter.ws_url, [target.market_id], lp, clock, lambda *a: None, on_events)
-    bf = BinanceFeed(cfg.reference.ws_url, [target.ref_symbol], bp, brest, clock, lambda *a: None, on_events)
+    bf = BinanceFeed(cfg.reference.ws_url, [target.ref_symbol], bp, brest, clock, lambda *a: None, on_events,
+                     market_ws_url=cfg.reference.market_ws_url)
     ok = await _collect([lf, bf], lambda: seen["l_snap"] and seen["l_upd"] >= 20 and seen["b_snap"]
-                        and seen["b_upd"] >= 20 and seen["stats"] is not None, 45.0)
+                        and seen["b_upd"] >= 20 and seen["b_trade"] and seen["b_stats"]
+                        and seen["stats"] is not None, 45.0)
     rep.check("websocket_books", ok, json.dumps({k: v for k, v in seen.items() if k != "stats"}))
     rep.check("lighter_book_continuity", seen["l_gap"] == 0 and seen["crossed"] == 0,
               f"gaps={seen['l_gap']} crossed_updates={seen['crossed']}")
