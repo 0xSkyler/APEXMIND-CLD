@@ -20,13 +20,22 @@ python3 -m venv /opt/apexmind/venv
 
 install -m 0644 "$SRC"/deploy/systemd/apexmind-*.service /etc/systemd/system/
 systemctl daemon-reload
+
+# Operator command: runs as apexmind from /var/lib/apexmind, where the services
+# resolve the config's relative paths (state/, runs/, data/), so it works from
+# any directory. It has no credential; integration-test uses systemd-run below.
+cat > /usr/local/bin/apexmind <<'WRAP'
+#!/bin/sh
+cd /var/lib/apexmind && exec sudo -u apexmind /opt/apexmind/venv/bin/apexmind --config /etc/apexmind/config.yaml "$@"
+WRAP
+chmod 0755 /usr/local/bin/apexmind
 systemctl enable --now apexmind-collector.service apexmind-lab.service
 
 cat <<'MSG'
 Installed. The collector and the Alpha Lab are running.
 
 Next steps (in order):
- 1. Let the collector record data; check:   sudo -u apexmind /opt/apexmind/venv/bin/apexmind --config /etc/apexmind/config.yaml status
+ 1. Let the collector record data; check:   sudo apexmind status
  2. For account features, store ONLY the Lighter API key (never the wallet key):
       sudo install -o root -g root -m 0600 /dev/stdin /etc/apexmind/lighter_api_key   (paste key, Ctrl-D)
     and set lighter.account_index / api_key_index in /etc/apexmind/config.yaml.

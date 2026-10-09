@@ -31,7 +31,9 @@ serve some jurisdictions. Pick a hosting region where both are reachable.
 
 1. **Collect** for long enough to cover several market regimes. The default
    protocol needs at least 24 h of training plus 3 × 12 h test periods; a week
-   or more is far better. Check with `apexmind status`.
+   or more is far better. Check with `sudo apexmind status`
+   (installed wrapper: runs as `apexmind` from `/var/lib/apexmind`, where the
+   config's relative paths resolve).
 2. **Integration test** on the host (as `apexmind`, with the credential):
    `apexmind integration-test --place-test-order --latency-samples 30`.
    The post-only order is placed 10% away from the touch and cannot fill.
@@ -65,7 +67,7 @@ serve some jurisdictions. Pick a hosting region where both are reachable.
 
 ## Monitoring
 
-* `apexmind status` summarizes the collector, trader heartbeat, lab and champion.
+* `sudo apexmind status` summarizes the collector, trader heartbeat, lab and champion.
 * `journalctl -u apexmind-trader -f` shows the live log.
 * SQLite state `state/apexmind.sqlite` holds orders, fills, positions, every
   signal decision (approved or rejected, with reason), latency records, equity
