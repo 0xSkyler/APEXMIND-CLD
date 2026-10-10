@@ -131,3 +131,18 @@ def test_trader_start_refused_without_champion_and_status_is_read_only(panel):
     (reg / "champion.json").write_text('{"id": "ridge-1"}')
     assert panel.status()["health"]["champion"] == "ridge-1"
     panel.service("trader", "start")
+
+
+def test_lab_reports_waiting_for_data(tmp_path):
+    from apexmind.config import Config
+    from apexmind.data.synthetic import SyntheticSpec, generate
+    from apexmind.lab.laboratory import AlphaLab
+
+    raw = tmp_path / "raw"
+    generate(SyntheticSpec(hours=0.2, seed=3), str(raw))
+    cfg = Config()
+    cfg.research.runs_dir = str(tmp_path / "runs")
+    cfg.lab.registry_dir = str(tmp_path / "runs" / "registry")
+    out = AlphaLab(cfg, str(raw)).run_cycle()
+    assert out["status"] == "waiting_for_data" and 0.1 < out["recorded_hours"] < 0.3
+    assert json.loads((tmp_path / "runs" / "lab_status.json").read_text())["first_run_at_hours"] == 37.0

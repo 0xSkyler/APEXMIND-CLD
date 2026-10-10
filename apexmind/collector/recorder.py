@@ -136,8 +136,13 @@ def data_span(data_dir: str | os.PathLike, venues: Iterable[str]) -> tuple[int, 
     files = list_files(data_dir, venues, 0, 2**63 - 1)
     if not files:
         return None
-    first, last = None, None
+    # Files are hourly and listed in time order per venue: only the earliest and
+    # latest file of each venue can hold the extremes.
+    ends: dict[str, list] = {}
     for v, p in files:
+        ends.setdefault(v, []).append(p)
+    first, last = None, None
+    for v, p in {(v, p) for v, ps in ends.items() for p in (ps[0], ps[-1])}:
         for t, *_ in _parse_lines(p, v, 0, 2**63 - 1):
             first = t if first is None else min(first, t)
             last = t if last is None else max(last, t)

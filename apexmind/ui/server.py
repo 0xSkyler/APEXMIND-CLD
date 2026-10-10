@@ -235,7 +235,16 @@ def _summary(name: str, v):
     if name == "collector":
         q = v.get("quality") or {}
         return {"age_s": v.get("age_s"), "streams": len(q), "gaps": sum(s.get("gaps", 0) for s in q.values()),
-                "hours": max((s.get("span_hours", 0) for s in q.values()), default=0)}
+                "hours_since_restart": max((s.get("span_hours", 0) for s in q.values()), default=0)}
+    if name == "lab" and v.get("status") == "waiting_for_data":
+        return {"status": "waiting for data", "recorded_hours": v.get("recorded_hours"),
+                "first_run_at_hours": v.get("first_run_at_hours"), "full_test_hours": v.get("full_protocol_hours")}
+    if name == "lab" and v.get("status") == "error":
+        return {"status": "error (see lab log)"}
+    if name == "lab":
+        res = v.get("results") or {}
+        return {"age_s": v.get("age_s"), "last_run": time.strftime("%m-%d %H:%M", time.localtime(v.get("t", 0))),
+                "promoted": [r.get("promoted") for r in res.values() if isinstance(r, dict) and r.get("promoted")]}
     return {k: v[k] for k in list(v)[:6]}
 
 

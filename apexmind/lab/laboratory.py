@@ -179,8 +179,16 @@ class AlphaLab:
 
     def run_cycle(self, lookback_hours: float | None = None) -> dict:
         span = data_span(self.data_dir, ["lighter", self.cfg.reference.venue])
-        if span is None:
-            return {"status": "no_data"}
+        rc = self.cfg.research
+        need_h = rc.min_train_hours + rc.test_hours + 1.0  # one fold plus embargo gaps
+        have_h = (span[1] - span[0]) / 3.6e12 if span else 0.0
+        if have_h < need_h:
+            # Written every check so operators can see progress instead of "missing".
+            status = {"t": time.time(), "status": "waiting_for_data", "recorded_hours": round(have_h, 2),
+                      "first_run_at_hours": need_h,
+                      "full_protocol_hours": rc.min_train_hours + rc.n_folds * rc.test_hours}
+            atomic_write_json(self.runs / "lab_status.json", status)
+            return status
         start, end = span
         if lookback_hours:
             start = max(start, end - int(lookback_hours * 3.6e12))
@@ -261,4 +269,9 @@ class AlphaLab:
             except Exception:
                 log.error("lab cycle failed:\n%s", traceback.format_exc())
                 self._record({"t": time.time(), "error": traceback.format_exc()})
-            time.sleep(max(60.0, lab.interval_minutes * 60 - (time.time() - t0)))
+                atomic_write_json(self.runs / "lab_status.json",
+                                  {"t": time.time(), "status": "error", "error": traceback.format_exc()[-2000:]})
+                out = {}
+            # While waiting for data, re-check every 30 min so the first run starts soon after it is possible.
+            interval = 30.0 if out.get("status") == "waiting_for_data" else lab.interval_minutes
+            time.sleep(max(60.0, interval * 60 - (time.time() - t0)))
