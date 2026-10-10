@@ -29,10 +29,15 @@ cat > /usr/local/bin/apexmind <<'WRAP'
 cd /var/lib/apexmind && exec sudo -u apexmind /opt/apexmind/venv/bin/apexmind --config /etc/apexmind/config.yaml "$@"
 WRAP
 chmod 0755 /usr/local/bin/apexmind
-systemctl enable --now apexmind-collector.service apexmind-lab.service
+[[ -f /etc/apexmind/ui_token ]] || (umask 077; head -c 18 /dev/urandom | base64 | tr '+/' '-_' > /etc/apexmind/ui_token)
+systemctl enable --now apexmind-collector.service apexmind-lab.service apexmind-ui.service
+systemctl restart apexmind-ui.service   # pick up a reinstalled package
 
 cat <<'MSG'
 Installed. The collector and the Alpha Lab are running.
+
+Control panel (browser on this machine): http://127.0.0.1:18787
+  access token:  sudo cat /etc/apexmind/ui_token
 
 Next steps (in order):
  1. Let the collector record data; check:   sudo apexmind status
