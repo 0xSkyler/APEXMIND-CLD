@@ -86,6 +86,12 @@ class Panel:
         p = Path(self.cfg().live.kill_file)
         return p if p.is_absolute() else self.workdir / p
 
+    def champion(self) -> str | None:
+        from apexmind.cli import champion_id
+
+        d = Path(self.cfg().lab.registry_dir)
+        return champion_id(d if d.is_absolute() else self.workdir / d)
+
     def status(self) -> dict:
         from apexmind.cli import collect_status
 
@@ -154,6 +160,10 @@ class Panel:
         unit = SERVICES.get(name)
         if unit is None or action not in ("start", "stop", "restart"):
             raise PanelError("unknown service or action")
+        if name == "trader" and action != "stop" and self.champion() is None:
+            raise PanelError("No strategy has been promoted yet, so the trader has nothing to trade and would "
+                             "refuse to start. The lab needs about 60 hours of recorded data for its first run; "
+                             "the champion appears under Status when one passes.")
         argv = {"start": ["systemctl", "enable", "--now", unit], "stop": ["systemctl", "disable", "--now", unit],
                 "restart": ["systemctl", "restart", unit]}[action]
         rc, out = self.run(argv)

@@ -11,6 +11,8 @@ systemctl enable --now chrony   # clock discipline; status is recorded by the co
 
 id apexmind &>/dev/null || useradd --system --home /var/lib/apexmind --shell /usr/sbin/nologin apexmind
 install -d -o apexmind -g apexmind -m 0750 /var/lib/apexmind /var/lib/apexmind/data /var/lib/apexmind/state /var/lib/apexmind/runs
+# Runtime data belongs to the service user (repairs files a root process may have created).
+chown -R apexmind:apexmind /var/lib/apexmind
 install -d -o root -g apexmind -m 0750 /etc/apexmind
 [[ -f /etc/apexmind/config.yaml ]] || install -o root -g apexmind -m 0640 "$SRC/configs/default.yaml" /etc/apexmind/config.yaml
 

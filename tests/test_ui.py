@@ -68,8 +68,8 @@ def test_rejects_wallet_key_bad_key_and_reserved_index(panel):
 
 
 def test_services_mode_and_kill(panel):
-    panel.service("trader", "start")
-    assert ["systemctl", "enable", "--now", "apexmind-trader"] in panel.run.calls
+    panel.service("collector", "start")
+    assert ["systemctl", "enable", "--now", "apexmind-collector"] in panel.run.calls
     with pytest.raises(PanelError):
         panel.service("sshd", "stop")
     with pytest.raises(PanelError, match="LIVE"):
@@ -118,3 +118,16 @@ def test_http_requires_local_host_token_and_custom_header(panel):
         assert req("/api/status", headers=cookie)[1].count(API_KEY) == 0
     finally:
         httpd.shutdown()
+
+
+def test_trader_start_refused_without_champion_and_status_is_read_only(panel):
+    with pytest.raises(PanelError, match="No strategy"):
+        panel.service("trader", "start")
+    panel.service("trader", "stop")  # stopping is always allowed
+    panel.status()
+    assert not (panel.workdir / "runs").exists()  # no root-owned dirs created by polling
+    reg = panel.workdir / "runs" / "registry"
+    reg.mkdir(parents=True)
+    (reg / "champion.json").write_text('{"id": "ridge-1"}')
+    assert panel.status()["health"]["champion"] == "ridge-1"
+    panel.service("trader", "start")

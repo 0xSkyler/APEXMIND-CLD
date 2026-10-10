@@ -109,9 +109,13 @@ def cmd_integration(a, cfg) -> int:
     return main_integration(cfg, a.place_test_order, a.latency_samples)
 
 
-def collect_status(cfg) -> dict:
-    from apexmind.lab.registry import Registry
+def champion_id(registry_dir) -> str | None:
+    """Read-only champion lookup (Registry() creates directories; status runs as root in the UI)."""
+    p = Path(registry_dir) / "champion.json"
+    return json.loads(p.read_text()).get("id") if p.exists() else None
 
+
+def collect_status(cfg) -> dict:
     out = {}
     for name, p in (("trader", cfg.live.heartbeat_path), ("collector", cfg.collector.health_path),
                     ("lab", str(Path(cfg.research.runs_dir) / "lab_status.json")),
@@ -123,8 +127,7 @@ def collect_status(cfg) -> dict:
                          **({k: d[k] for k in list(d)[:12]} if isinstance(d, dict) else {})}
         else:
             out[name] = "missing"
-    reg = Registry(cfg.lab.registry_dir)
-    out["champion"] = reg.champion_id()
+    out["champion"] = champion_id(cfg.lab.registry_dir)
     return out
 
 
