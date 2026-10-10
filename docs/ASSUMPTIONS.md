@@ -17,8 +17,9 @@ checks or records each one, and the parsers fail safe where they can.
 | 5 | Public trades include `bid_client_id` / `ask_client_id` | own-fill detection | Without them, fills still arrive through REST reconciliation, but tape-based latency cannot be measured. The integration test reports `tape_client_ids`. |
 | 6 | REST `account` returns `accounts[0]` with `total_asset_value`, `cross_maintenance_margin_requirement`, and `positions[].position/sign` | `live/trader.py` reconciliation | Exceptions are logged and entries stay disabled until reconciliation succeeds |
 | 7 | Margin fractions are in 1/10 000 units | `markets.py` | Consistent with the SDK (`imf = 10_000 / leverage`) |
-| 8 | Order expiry is a millisecond timestamp; IOC uses 0 | gateway | Verified by the post-only lifecycle test |
+| 8 | Order expiry is a millisecond timestamp, 5 min to 30 days ahead (lighter-go `MinOrderExpiryPeriod`); IOC uses 0 | gateway `order_expiry_ms` clamps with a 1 min margin | Verified by the post-only lifecycle test |
 | 9 | Default rate limits (50 REST/min, 4 tx/s) are within your tier | config | Tune after checking Lighter's limits for your account tier |
+| 10 | Binance USD-M serves book streams on `/public` and `aggTrade`/`markPrice` on `/market` (combined `.../stream?streams=`) | `reference.ws_url`, `reference.market_ws_url` | The integration test requires Binance trades and mark-price updates; the collector status shows per-stream `trades` counts |
 
 ## Methodological limitations
 

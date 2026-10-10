@@ -45,7 +45,11 @@ class LighterConfig:
 @dataclass
 class ReferenceConfig:
     venue: str = "binance_usdm"
-    ws_url: str = "wss://fstream.binance.com/stream"
+    # USD-M futures WebSocket is split by traffic type: book streams (bookTicker,
+    # depth) on /public, regular market streams (aggTrade, markPrice) on /market.
+    # The legacy un-split URL no longer delivers /market streams.
+    ws_url: str = "wss://fstream.binance.com/public/stream"
+    market_ws_url: str = "wss://fstream.binance.com/market/stream"
     rest_url: str = "https://fapi.binance.com"
     depth_stream_ms: int = 100  # 100 or 250 or 500 for Binance diff depth
     snapshot_depth: int = 1000
@@ -153,7 +157,7 @@ class ExecutionConfig:
     allow_passive: bool = True
     passive_max_wait_fraction: float = 0.5  # of signal horizon
     max_slippage_bps: float = 15.0
-    order_expiry_s: int = 300
+    order_expiry_s: int = 600  # exchange-side backstop; Lighter requires >= 5 min
 
 
 @dataclass
@@ -292,12 +296,14 @@ def load_lighter_api_key(cfg: LiveConfig, env: dict[str, str] | None = None) -> 
     if env.get("APEXMIND_LIGHTER_API_KEY"):
         return env["APEXMIND_LIGHTER_API_KEY"].strip()
     cred_dir = env.get("CREDENTIALS_DIRECTORY")
-    candidates = [Path(cred_dir) / "lighter_api_key"] if cred_dir else []
-    candidates.append(Path(cfg.secrets_file))
-    for p in candidates:
+    # systemd LoadCredential files are 0440 inside a directory only the unit can
+    # open, so group read is expected there; a plain secrets file must be 0600.
+    candidates = [(Path(cred_dir) / "lighter_api_key", stat.S_IRWXO)] if cred_dir else []
+    candidates.append((Path(cfg.secrets_file), stat.S_IRWXG | stat.S_IRWXO))
+    for p, forbidden in candidates:
         if p.exists():
-            mode = p.stat().st_mode
-            if mode & (stat.S_IRWXG | stat.S_IRWXO):
-                raise SecretError(f"{p} must not be accessible by group/others (chmod 600)")
+            if p.stat().st_mode & forbidden:
+                who = "others" if forbidden == stat.S_IRWXO else "group/others"
+                raise SecretError(f"{p} must not be accessible by {who}")
             return p.read_text().strip()
     raise SecretError("Lighter API key not configured")

@@ -68,3 +68,15 @@ def test_signed_transactions_encode_orders_correctly():
     assert all(tx["AccountIndex"] == 123 and tx["ApiKeyIndex"] == 3 for _, tx in sent)
     assert gw.quota_remaining == 99
     assert gw._key == ""  # the gateway does not keep a second copy of the key
+
+
+def test_order_expiry_respects_lighter_window():
+    from apexmind.venues.lighter.trading import MIN_ORDER_EXPIRY_S, order_expiry_ms
+
+    now = 1_800_000_000_000
+    assert order_expiry_ms("ioc", 600, now) == 0
+    # Lighter rejects resting orders expiring < 5 min out ("invalid expiry", code 21711)
+    assert order_expiry_ms("post_only", 300, now) - now >= 5 * 60 * 1000 + 30_000
+    assert order_expiry_ms("gtt", 600, now) == now + 600_000
+    assert order_expiry_ms("gtt", 10**9, now) - now <= 30 * 86400 * 1000
+    assert MIN_ORDER_EXPIRY_S > 300

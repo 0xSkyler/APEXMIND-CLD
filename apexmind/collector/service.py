@@ -128,7 +128,8 @@ class Collector:
         lfeed = LighterFeed(self.cfg.lighter.ws_url, market_ids, self.lparser, self.clock, self._on_raw,
                             self._on_events, self.cfg.lighter.ws_max_subscriptions_per_connection)
         bfeed = BinanceFeed(self.cfg.reference.ws_url, ref_symbols, self.bparser, self.brest, self.clock,
-                            self._on_raw, self._on_events, self.cfg.reference.depth_stream_ms)
+                            self._on_raw, self._on_events, self.cfg.reference.depth_stream_ms,
+                            market_ws_url=self.cfg.reference.market_ws_url)
         resync = self.cfg.collector.snapshot_resync_minutes
         tasks = [asyncio.create_task(c) for c in (
             lfeed.run(self.stop, resync), bfeed.run(self.stop, resync), self._clock_loop(), self._metadata_loop(),

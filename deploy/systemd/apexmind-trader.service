@@ -15,6 +15,9 @@ ExecStart=/bin/sh -c 'exec /opt/apexmind/venv/bin/apexmind --config /etc/apexmin
 # The API key is delivered as a systemd credential (never in the config or env file).
 LoadCredential=lighter_api_key:/etc/apexmind/lighter_api_key
 Restart=always
+# 2 = live refused without the risk flag, 3 = preflight refusal (no champion,
+# failed live gate, stale integration test): stop instead of restarting forever.
+RestartPreventExitStatus=2 3
 RestartSec=5
 TimeoutStopSec=30
 KillSignal=SIGTERM

@@ -27,6 +27,17 @@ from apexmind.latency.model import LatencyModel
 from apexmind.venues.lighter.markets import LighterMarket
 
 ORDER_TYPE_LIMIT = 0
+# lighter-go txtypes: resting-order expiry must be 5 min..30 days from now (ms).
+# The margin absorbs signing/network time and local clock error.
+MIN_ORDER_EXPIRY_S = 5 * 60 + 60
+MAX_ORDER_EXPIRY_S = 30 * 86400 - 3600
+
+
+def order_expiry_ms(kind: str, expiry_s: int, now_ms: int) -> int:
+    """Exchange expiry field: 0 for IOC, otherwise clamped into Lighter's window."""
+    if kind == "ioc":
+        return 0
+    return now_ms + min(max(int(expiry_s), MIN_ORDER_EXPIRY_S), MAX_ORDER_EXPIRY_S) * 1000
 ORDER_TYPE_MARKET = 1
 TIF_IOC = 0
 TIF_GTT = 1
@@ -114,9 +125,9 @@ class LighterGateway:
                         self.quota_remaining)
 
     async def create_order(self, m: LighterMarket, coi: int, side: int, qty: float, price: float, kind: str,
-                           reduce_only: bool = False, expiry_s: int = 300) -> TxResult:
+                           reduce_only: bool = False, expiry_s: int = 600) -> TxResult:
         tif = {"ioc": TIF_IOC, "post_only": TIF_POST_ONLY, "gtt": TIF_GTT}[kind]
-        expiry = 0 if kind == "ioc" else int(time.time() * 1000) + expiry_s * 1000
+        expiry = order_expiry_ms(kind, expiry_s, int(time.time() * 1000))
         s = self._signer
         return await self._send(lambda: s.create_order(
             m.market_id, coi, m.size_to_int(qty), m.price_to_int(price, side_is_buy=(side == BUY)), side == SELL,

@@ -109,9 +109,13 @@ def cmd_integration(a, cfg) -> int:
     return main_integration(cfg, a.place_test_order, a.latency_samples)
 
 
-def cmd_status(a, cfg) -> int:
-    from apexmind.lab.registry import Registry
+def champion_id(registry_dir) -> str | None:
+    """Read-only champion lookup (Registry() creates directories; status runs as root in the UI)."""
+    p = Path(registry_dir) / "champion.json"
+    return json.loads(p.read_text()).get("id") if p.exists() else None
 
+
+def collect_status(cfg) -> dict:
     out = {}
     for name, p in (("trader", cfg.live.heartbeat_path), ("collector", cfg.collector.health_path),
                     ("lab", str(Path(cfg.research.runs_dir) / "lab_status.json")),
@@ -123,10 +127,19 @@ def cmd_status(a, cfg) -> int:
                          **({k: d[k] for k in list(d)[:12]} if isinstance(d, dict) else {})}
         else:
             out[name] = "missing"
-    reg = Registry(cfg.lab.registry_dir)
-    out["champion"] = reg.champion_id()
-    print(json.dumps(out, indent=1, default=str))
+    out["champion"] = champion_id(cfg.lab.registry_dir)
+    return out
+
+
+def cmd_status(a, cfg) -> int:
+    print(json.dumps(collect_status(cfg), indent=1, default=str))
     return 0
+
+
+def cmd_ui(a, cfg) -> int:
+    from apexmind.ui.server import serve
+
+    return serve(a.config, a.bind, a.port)
 
 
 def cmd_validate(a, cfg) -> int:
@@ -196,6 +209,9 @@ def main(argv: list[str] | None = None) -> int:
     i.add_argument("--place-test-order", action="store_true")
     i.add_argument("--latency-samples", type=int, default=0)
     sub.add_parser("status", help="health of collector, trader, lab and champion")
+    u = sub.add_parser("ui", help="local web control panel (run as root via apexmind-ui.service)")
+    u.add_argument("--bind", default="127.0.0.1")
+    u.add_argument("--port", type=int, default=18787)
     v = sub.add_parser("validate-methodology", help="positive/negative synthetic controls")
     v.add_argument("--out", required=True)
     v.add_argument("--hours", type=float, default=6.0)
@@ -209,7 +225,7 @@ def main(argv: list[str] | None = None) -> int:
         a.data = cfg.collector.data_dir
     handlers = {"collect": cmd_collect, "synthetic": cmd_synthetic, "research": cmd_research, "report": cmd_report,
                 "lab": cmd_lab, "trade": cmd_trade, "integration-test": cmd_integration, "status": cmd_status,
-                "validate-methodology": cmd_validate}
+                "ui": cmd_ui, "validate-methodology": cmd_validate}
     return handlers[a.cmd](a, cfg)
 
 

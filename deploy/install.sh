@@ -11,6 +11,8 @@ systemctl enable --now chrony   # clock discipline; status is recorded by the co
 
 id apexmind &>/dev/null || useradd --system --home /var/lib/apexmind --shell /usr/sbin/nologin apexmind
 install -d -o apexmind -g apexmind -m 0750 /var/lib/apexmind /var/lib/apexmind/data /var/lib/apexmind/state /var/lib/apexmind/runs
+# Runtime data belongs to the service user (repairs files a root process may have created).
+chown -R apexmind:apexmind /var/lib/apexmind
 install -d -o root -g apexmind -m 0750 /etc/apexmind
 [[ -f /etc/apexmind/config.yaml ]] || install -o root -g apexmind -m 0640 "$SRC/configs/default.yaml" /etc/apexmind/config.yaml
 
@@ -20,13 +22,27 @@ python3 -m venv /opt/apexmind/venv
 
 install -m 0644 "$SRC"/deploy/systemd/apexmind-*.service /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable --now apexmind-collector.service apexmind-lab.service
+
+# Operator command: runs as apexmind from /var/lib/apexmind, where the services
+# resolve the config's relative paths (state/, runs/, data/), so it works from
+# any directory. It has no credential; integration-test uses systemd-run below.
+cat > /usr/local/bin/apexmind <<'WRAP'
+#!/bin/sh
+cd /var/lib/apexmind && exec sudo -u apexmind /opt/apexmind/venv/bin/apexmind --config /etc/apexmind/config.yaml "$@"
+WRAP
+chmod 0755 /usr/local/bin/apexmind
+[[ -f /etc/apexmind/ui_token ]] || (umask 077; head -c 18 /dev/urandom | base64 | tr '+/' '-_' > /etc/apexmind/ui_token)
+systemctl enable --now apexmind-collector.service apexmind-lab.service apexmind-ui.service
+systemctl restart apexmind-ui.service   # pick up a reinstalled package
 
 cat <<'MSG'
 Installed. The collector and the Alpha Lab are running.
 
+Control panel (browser on this machine): http://127.0.0.1:18787
+  access token:  sudo cat /etc/apexmind/ui_token
+
 Next steps (in order):
- 1. Let the collector record data; check:   sudo -u apexmind /opt/apexmind/venv/bin/apexmind --config /etc/apexmind/config.yaml status
+ 1. Let the collector record data; check:   sudo apexmind status
  2. For account features, store ONLY the Lighter API key (never the wallet key):
       sudo install -o root -g root -m 0600 /dev/stdin /etc/apexmind/lighter_api_key   (paste key, Ctrl-D)
     and set lighter.account_index / api_key_index in /etc/apexmind/config.yaml.

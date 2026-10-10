@@ -245,3 +245,21 @@ async def test_lighter_feed_against_local_server():
     assert got_pong.is_set()
     assert any(isinstance(e, BookSnapshot) for e in events) and any(isinstance(e, BookDelta) for e in events)
     assert all(r[2] > 0 for r in raws)
+
+
+def test_binance_feed_splits_book_and_market_streams():
+    from apexmind.config import ReferenceConfig
+    from apexmind.core.clock import Clock
+    from apexmind.venues.binance.parse import BinanceParser
+    from apexmind.venues.feeds import BinanceFeed
+
+    rc = ReferenceConfig()
+    f = BinanceFeed(rc.ws_url, ["BTCUSDT", "ETHUSDT"], BinanceParser(), None, Clock(), lambda *a: None,
+                    lambda e: None, 100, market_ws_url=rc.market_ws_url)
+    urls = {r.name: r.url for r in f.runners}
+    assert set(urls) == {"binance-public-0", "binance-market-0"}
+    pub, mkt = urls["binance-public-0"], urls["binance-market-0"]
+    assert pub.startswith("wss://fstream.binance.com/public/stream?streams=")
+    assert mkt.startswith("wss://fstream.binance.com/market/stream?streams=")
+    assert "btcusdt@bookTicker" in pub and "ethusdt@depth@100ms" in pub and "aggTrade" not in pub
+    assert "btcusdt@aggTrade" in mkt and "ethusdt@markPrice@1s" in mkt and "depth" not in mkt

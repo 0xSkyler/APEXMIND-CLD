@@ -1,0 +1,17 @@
+[Unit]
+Description=APEX MIND local control panel (http://127.0.0.1:18787, token in /etc/apexmind/ui_token)
+After=network.target
+
+[Service]
+Type=simple
+# Root: it saves the API key under /etc/apexmind and starts/stops the other
+# units. It listens on 127.0.0.1 only; open it from a browser on this machine.
+# Different port: systemctl edit apexmind-ui -> Environment=APEXMIND_UI_PORT=NNNNN
+Environment=APEXMIND_UI_PORT=18787
+WorkingDirectory=/var/lib/apexmind
+ExecStart=/bin/sh -c 'exec /opt/apexmind/venv/bin/apexmind --config /etc/apexmind/config.yaml ui --bind 127.0.0.1 --port "$APEXMIND_UI_PORT"'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -16,6 +16,26 @@ The host must be able to reach `mainnet.zklighter.elliot.ai` and the
 reference venue (`fstream.binance.com`, `fapi.binance.com`). Binance does not
 serve some jurisdictions. Pick a hosting region where both are reachable.
 
+## Control panel
+
+`apexmind-ui` serves a local web panel at `http://127.0.0.1:18787`. Open it in a
+browser on the server itself (for example over RustDesk or VNC). It covers:
+
+* saving the Lighter account index, API key index and API private key;
+* starting, stopping and restarting the collector, lab and trader;
+* switching the trader between paper and live;
+* the kill switch;
+* running the integration test;
+* service logs.
+
+The access token is in `/etc/apexmind/ui_token` (`sudo cat` it). The panel
+listens on 127.0.0.1 only, rejects other `Host` headers, never shows the saved
+key, and refuses 64-hex-character keys, since those are wallet keys. To change
+the port, run `systemctl edit apexmind-ui` and set
+`Environment=APEXMIND_UI_PORT=NNNNN`. To reach it from another computer, use an
+SSH tunnel (`ssh -L 18787:127.0.0.1:18787 user@vps`). Do not expose the port
+publicly.
+
 ## Credentials
 
 * Put **only the Lighter API key** on the host:
@@ -31,7 +51,9 @@ serve some jurisdictions. Pick a hosting region where both are reachable.
 
 1. **Collect** for long enough to cover several market regimes. The default
    protocol needs at least 24 h of training plus 3 × 12 h test periods; a week
-   or more is far better. Check with `apexmind status`.
+   or more is far better. Check with `sudo apexmind status`
+   (installed wrapper: runs as `apexmind` from `/var/lib/apexmind`, where the
+   config's relative paths resolve).
 2. **Integration test** on the host (as `apexmind`, with the credential):
    `apexmind integration-test --place-test-order --latency-samples 30`.
    The post-only order is placed 10% away from the touch and cannot fill.
@@ -65,7 +87,7 @@ serve some jurisdictions. Pick a hosting region where both are reachable.
 
 ## Monitoring
 
-* `apexmind status` summarizes the collector, trader heartbeat, lab and champion.
+* `sudo apexmind status` summarizes the collector, trader heartbeat, lab and champion.
 * `journalctl -u apexmind-trader -f` shows the live log.
 * SQLite state `state/apexmind.sqlite` holds orders, fills, positions, every
   signal decision (approved or rejected, with reason), latency records, equity
